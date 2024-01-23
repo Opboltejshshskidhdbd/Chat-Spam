@@ -1,6 +1,6 @@
 
 
-getenv().AutoFarmCoins = false 
+
 
 loadstring(game:HttpGet(("https://raw.githubusercontent.com/REDzHUB/LibraryV2/main/redzLib")))()
 
@@ -163,6 +163,8 @@ local Toggle = AddToggle(Main, {
   Name = "Toggle teste",
   Default = false,
   Callback = function(Value)
+    
+    getenv().AutoFarmCoins = false 
     while getenv().AutoFarmCoins == true do
     
     
