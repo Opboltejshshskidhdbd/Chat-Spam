@@ -14,7 +14,7 @@ MakeWindow({
     Title = "Key System",
     Description = "GanjaHub key system",
     KeyLink = "https://discord.com/invite/xTWvf7ct",
-    Keys = {"GanjaHub91818181818181181818171871717181818181818j1kkakakak10011kkkkhv19191763"},
+    Keys = {"GanjaHub77722727727272728288292299029877636272721881818377476577744663728193877382"},
     Notifi = {
       Notifications = true,
       CorrectKey = "Running the Script...",
@@ -160,11 +160,11 @@ MakeNotifi({
   Time = 10
 })
 local Toggle = AddToggle(Main, {
-  Name = "Toggle teste",
+  Name = "",
   Default = false,
   Callback = function(Value)
     
-    getenv().AutoFarmCoins = false 
+    getenv().AutoFarmCoins = true;
     while getenv().AutoFarmCoins == true do
     
     
