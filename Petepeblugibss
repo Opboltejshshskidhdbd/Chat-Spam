@@ -1,776 +1,908 @@
-
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+local WorkspacePlayers = game:GetService("Workspace").Game.Players
+local Players = game:GetService('Players')
+local localplayer = Players.LocalPlayer
+local GuiService = game:GetService("GuiService")
+local Light = game:GetService("Lighting")
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+OrionLib:MakeNotification({
+    Name = "Hydra Network",
+    Content = "Hydra Network is Loading.",
+    Image = "rbxassetid://4483345998",
+    Time = 4
+})
+game:GetService("ReplicatedStorage").Events.Respawn:FireServer()
+wait(4)
+OrionLib:MakeNotification({
+    Name = "Hydra Network",
+    Content = "Hydra Network is Ready!",
+    Image = "rbxassetid://4483345998",
+    Time = 2
+})
+local Window = OrionLib:MakeWindow({Name = "Hydra Network |Evade|", HidePremium = false,IntroText = "Evade V2.6", SaveConfig = false, ConfigFolder = "OrionTest"})
+ 
+--functions and shit
+getgenv().money = true
+getgenv().revivedie = true
+getgenv().autowistle = true
+getgenv().autochat = true
+getgenv().AutoDrink = true
+getgenv().NoCameraShake = true
 getgenv().Settings = {
-    Main = {
-        Enable = true,
- 
-        HoldKey = false,
-        ToggleKey = true,
- 
-        UseKeyBoardKey = true,
-        KeyBoardKey = Enum.KeyCode.Q, -- https://create.roblox.com/docs/reference/engine/enums/KeyCode
- 
-        UseMouseKey = false,
-        ThirdPerson = true,
-        FirstPerson = true,
- 
-        AutoPingSets = true,
- 
-        UseCircleRadius = true,
-        DisableOutSideCircle = true,
- 
-        UseShake = true,
-        ShakePower = 1,
- 
-        CheckForWalls = true
-    },
-    Check = {
-        CheckIfKo = true, -- This Is For Da Hood
-        DisableOnTargetDeath = true,
-        DisableOnPlayerDeath = true
-    },
-    Horizontal = {
-        PredictMovement = true,
-        PredictionVelocity = 0.17221418
-    },
-    Smooth = {
-        Smoothness = true,
-        SmoothnessAmount = 1,
-        SmoothMethod = Enum.EasingStyle.Circular,
-        SmoothMethodV2 = Enum.EasingDirection.InOut
-    },
-    Part = {
-        AimPart = "Head",
-        CheckIfJumpedAimPart = "HumanoidRootPart",
-        CheckIfJumped = true,
-        GetClosestPart = false
-    },
-    Resolver = {
-        UnderGround = false,
-        UseUnderGroundKeybind = true,
-        UnderGroundKey = Enum.KeyCode.C,
-        DetectDesync = true,
-        Detection = 75,
- 
-        UseDetectDesyncKeybind = true,
-        DetectDesyncKey = Enum.KeyCode.V,
-        SendNotification = true
-    },
-    Visual = {
-        Fov = true,
-        FovTransparency = 1,
-        FovThickness = 1,
-        FovColor = Color3.fromRGB(255, 185, 0),
-        FovRadius = 360
-    },
-    Spoofer = {
-        MemorySpoofer = true,
-        MemoryTabColor = Color3.fromRGB(211, 88, 33),
-        MemoryMost = 85000,
-        MemoryLeast = 80000,
- 
-        PingSpoofer = true,
-        PingTabColor = Color3.fromRGB(211, 88, 33),
-        PingMost = 2000,
-        PingLeast = 1000
-    }
+    moneyfarm = false,
+    afkfarm = false,
+    NoCameraShake = false,
+    Speed = 1450,
+    Jump = 3,
+    reviveTime = 3,
 }
  
--- // Locals
- 
-local Players, Uis, RService, Inset, CurrentCamera = 
-game:GetService("Players"), 
-game:GetService("UserInputService"), 
-game:GetService("RunService"),
-game:GetService("GuiService"):GetGuiInset().Y,
-game:GetService("Workspace").CurrentCamera
- 
-local Client = Players.LocalPlayer;
- 
-local Mouse, Camera = Client:GetMouse(), workspace.CurrentCamera
- 
-local Circle = Drawing.new("Circle")
- 
-local CF, RNew, Vec3, Vec2 = CFrame.new, Ray.new, Vector3.new, Vector2.new
- 
-local OldAimPart = getgenv().Settings.Part.AimPart
- 
-local AimlockTarget, MousePressed, CanNotify = nil, false, false
- 
-getgenv().UpdateFOV = function()
-    if (not Circle) then
-        return (Circle)
-    end
-    Circle.Color = Settings.Visual.FovColor
-    Circle.Visible = Settings.Visual.Fov
-    Circle.Radius = Settings.Visual.FovRadius
-    Circle.Thickness = Settings.Visual.FovThickness
-    Circle.Position = Vec2(Mouse.X, Mouse.Y + Inset)
-    return (Circle)
-end
- 
-RService.Heartbeat:Connect(UpdateFOV)
- 
--- // Functions
- 
-getgenv().WallCheck = function(destination, ignore)
-    local Origin = Camera.CFrame.p
-    local CheckRay = RNew(Origin, destination - Origin)
-    local Hit = game.workspace:FindPartOnRayWithIgnoreList(CheckRay, ignore)
-    return Hit == nil
-end
- 
-getgenv().WTS = function(Object)
-    local ObjectVector = Camera:WorldToScreenPoint(Object.Position)
-    return Vec2(ObjectVector.X, ObjectVector.Y)
-end
- 
-getgenv().IsOnScreen = function(Object)
-    local IsOnScreen = Camera:WorldToScreenPoint(Object.Position)
-    return IsOnScreen
-end
- 
-getgenv().FilterObjs = function(Object)
-    if string.find(Object.Name, "Gun") then
-        return
-    end
-    if table.find({"Part", "MeshPart", "BasePart"}, Object.ClassName) then
-        return true
+local FindAI = function()
+    for _,v in pairs(WorkspacePlayers:GetChildren()) do
+        if not Players:FindFirstChild(v.Name) then
+            return v
+        end
     end
 end
  
-getgenv().GetClosestBodyPart = function(character)
-    local ClosestDistance = 1 / 0
-    local BodyPart = nil
-    if (character and character:GetChildren()) then
-        for _, x in next, character:GetChildren() do
-            if FilterObjs(x) and IsOnScreen(x) then
-                local Distance = (WTS(x) - Vec2(Mouse.X, Mouse.Y)).Magnitude
-                if (Circle.Radius > Distance and Distance < ClosestDistance) then
-                    ClosestDistance = Distance
-                    BodyPart = x
+local GetDownedPlr = function()
+    for i,v in pairs(WorkspacePlayers:GetChildren()) do
+        if v:GetAttribute("Downed") then
+            return v
+        end
+    end
+end
+ 
+local revive = function()
+    local downedplr = GetDownedPlr()
+    if downedplr ~= nil and downedplr:FindFirstChild('HumanoidRootPart') then
+        task.spawn(function()
+            while task.wait() do
+                if localplayer.Character then
+                    workspace.Game.Settings:SetAttribute("ReviveTime", 2.2)
+                    localplayer.Character:FindFirstChild('HumanoidRootPart').CFrame = CFrame.new(downedplr:FindFirstChild('HumanoidRootPart').Position.X, downedplr:FindFirstChild('HumanoidRootPart').Position.Y + 3, downedplr:FindFirstChild('HumanoidRootPart').Position.Z)
+                    task.wait()
+                    game:GetService("ReplicatedStorage").Events.Revive.RevivePlayer:FireServer(tostring(downedplr), false)
+                    task.wait(4.5)
+                    game:GetService("ReplicatedStorage").Events.Revive.RevivePlayer:FireServer(tostring(downedplr), true)
+                    game:GetService("ReplicatedStorage").Events.Revive.RevivePlayer:FireServer(tostring(downedplr), true)
+                    game:GetService("ReplicatedStorage").Events.Revive.RevivePlayer:FireServer(tostring(downedplr), true)
+                    break
                 end
             end
-        end
-    end
-    return BodyPart
-end
- 
-getgenv().WorldToViewportPoint = function(P)
-    return Camera:WorldToViewportPoint(P)
-end
- 
-getgenv().WorldToScreenPoint = function(P)
-    return Camera.WorldToScreenPoint(Camera, P)
-end
- 
-getgenv().GetObscuringObjects = function(T)
-    if T and T:FindFirstChild(getgenv().Settings.Part.AimPart) and Client and Client.Character:FindFirstChild("Head") then
-        local RayPos =
-            workspace:FindPartOnRay(RNew(T[getgenv().Settings.Part.AimPart].Position, Client.Character.Head.Position))
-        if RayPos then
-            return RayPos:IsDescendantOf(T)
-        end
+        end)
     end
 end
  
-getgenv().GetNearestTarget = function()
-    local AimlockTarget, Closest = nil, 1 / 0
+task.spawn(function()
+    while task.wait() do
+        if Settings.AutoRespawn then
+             if localplayer.Character and localplayer.Character:GetAttribute("Downed") then
+                game:GetService("ReplicatedStorage").Events.Respawn:FireServer()
+             end
+        end
  
-    for _, v in pairs(game:GetService("Players"):GetPlayers()) do
-        if (v.Character and v ~= Client and v.Character:FindFirstChild("HumanoidRootPart")) then
-            local Position, OnScreen = Camera:WorldToScreenPoint(v.Character.HumanoidRootPart.Position)
-            local Distance = (Vec2(Position.X, Position.Y) - Vec2(Mouse.X, Mouse.Y)).Magnitude
-            if Settings.Main.CheckForWalls then
-                if
-                    (Circle.Radius > Distance and Distance < Closest and OnScreen and
-                        getgenv().WallCheck(v.Character.HumanoidRootPart.Position, {Client, v.Character}))
-                 then
-                    Closest = Distance
-                    AimlockTarget = v
-                end
-            elseif Settings.Main.UseCircleRadius then
-                if
-                    (Circle.Radius > Distance and Distance < Closest and OnScreen and
-                        getgenv().WallCheck(v.Character.HumanoidRootPart.Position, {Client, v.Character}))
-                 then
-                    Closest = Distance
-                    AimlockTarget = v
-                end
+        if Settings.NoCameraShake then
+            localplayer.PlayerScripts.CameraShake.Value = CFrame.new(0,0,0) * CFrame.new(0,0,0)
+        end
+        if Settings.moneyfarm then
+            if localplayer.Character and localplayer.Character:GetAttribute("Downed") then
+                game:GetService("ReplicatedStorage").Events.Respawn:FireServer()
+                task.wait(3)
             else
-                if (Circle.Radius > Distance and Distance < Closest and OnScreen) then
-                    Closest = Distance
-                    AimlockTarget = v
-                end
+                revive()
+                task.wait(1)
             end
         end
+        if Settings.moneyfarm == false and Settings.afkfarm and localplayer.Character:FindFirstChild('HumanoidRootPart') ~= nil then
+            localplayer.Character:FindFirstChild('HumanoidRootPart').CFrame = CFrame.new(6007, 7005, 8005)
+        end
     end
-    return AimlockTarget
+end)
+ 
+function camerashake()
+    while NoCameraShake == true do task.wait()
+        localplayer.PlayerScripts.CameraShake.Value = CFrame.new(0,0,0) * CFrame.new(0,0,0)
+    end
 end
  
--- // Use KeyBoardKey Function
+function autodrink()
+	while AutoDrink == true do
+		local ohString1 = "Cola"
+		game:GetService("ReplicatedStorage").Events.UseUsable:FireServer(ohString1)
+		wait(6)
+	end
+end
  
-Uis.InputBegan:connect(
-    function(input)
-        if
-            input.KeyCode == Settings.Main.KeyBoardKey and Settings.Main.UseKeyBoardKey == true and
-                getgenv().Settings.Main.Enable == true and
-                AimlockTarget == nil and
-                getgenv().Settings.Main.HoldKey == true
-         then
-            pcall(
-                function()
-                    MousePressed = true
-                    AimlockTarget = GetNearestTarget()
-                end
-            )
-        end
+function SpamChat()
+    while autochat == true do
+        local ohString1 = "Hydra Network on top"
+        local ohString2 = "All"
+        game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(ohString1, ohString2)
+        wait(1)
     end
-)Uis.InputEnded:connect(
-    function(input)
-        if
-            input.KeyCode == Settings.Main.KeyBoardKey and getgenv().Settings.Main.HoldKey == true and
-                Settings.Main.UseKeyBoardKey == true and
-                getgenv().Settings.Main.Enable == true and
-                AimlockTarget ~= nil
-         then
-            AimlockTarget = nil
-            MousePressed = false
-        end
+end
+ 
+function autowistlefunction()
+    while autowistle == true do
+        local ohString1 = "Whistle"
+        local ohBoolean2 = true
+        game:GetService("Players").LocalPlayer.PlayerScripts.Events.KeybindUsed:Fire(ohString1, ohBoolean2)
+        game:GetService("ReplicatedStorage").Events.Whistle:FireServer()
+        wait(5)
     end
-)
+end
  
-Uis.InputBegan:Connect(
-    function(keyinput, stupid)
-        if
-            keyinput.KeyCode == Settings.Resolver.UnderGroundKey and getgenv().Settings.Main.Enable == true and
-                Settings.Resolver.UseUnderGroundKeybind == true
-         then
-            if Settings.Resolver.UnderGround == true then
-                Settings.Resolver.UnderGround = false
-                if getgenv().Settings.Resolver.SendNotification then
-                    game.StarterGui:SetCore(
-                        "SendNotification",
-                        {
-                            Title = "Sanky Box",
-                            Text = "Disabled UnderGround Resolver",
-                            Icon = "rbxassetid://11394475200",
-                            Duration = 1
-                        }
-                    )
-                end
-            else
-                Settings.Resolver.UnderGround = true
-                if getgenv().Settings.Resolver.SendNotification then
-                    game.StarterGui:SetCore(
-                        "SendNotification",
-                        {
-                            Title = "Sanky Box",
-                            Text = "Enabled UnderGround Resolver",
-                            Icon = "rbxassetid://11394475200",
-                            Duration = 1
-                        }
-                    )
-                end
-            end
-        end
+function god()
+    while revivedie == true do
+        game:GetService("ReplicatedStorage").Events.Respawn:FireServer()
+        wait()
     end
-)
+end
  
-Uis.InputBegan:Connect(
-    function(keyinput, stupid)
-        if
-            keyinput.KeyCode == Settings.Resolver.DetectDesyncKey and getgenv().Settings.Main.Enable == true and
-                Settings.Resolver.UseDetectDesyncKeybind == true
-         then
-            if Settings.Resolver.DetectDesync == true then
-                Settings.Resolver.DetectDesync = false
-                if getgenv().Settings.Resolver.SendNotification then
-                    game.StarterGui:SetCore(
-                        "SendNotification",
-                        {
-                            Title = "Sanky Box",
-                            Text = "Disabled Desync Resolver",
-                            Icon = "rbxassetid://11394475200",
-                            Duration = 1
-                        }
-                    )
-                end
-            else
-                Settings.Resolver.DetectDesync = true
-                if getgenv().Settings.Resolver.SendNotification then
-                    game.StarterGui:SetCore(
-                        "SendNotification",
-                        {
-                            Title = "Sanky Box",
-                            Text = "Enabled Desync Resolver",
-                            Icon = "rbxassetid://11394475200",
-                            Duration = 1
-                        }
-                    )
-                end
-            end
-        end
+function dofullbright()
+    Light.Ambient = Color3.new(1, 1, 1)
+    Light.ColorShift_Bottom = Color3.new(1, 1, 1)
+    Light.ColorShift_Top = Color3.new(1, 1, 1)
+    game.Lighting.FogEnd = 100000
+    game.Lighting.FogStart = 0
+    game.Lighting.ClockTime = 14
+    game.Lighting.Brightness = 2
+    game.Lighting.GlobalShadows = false
+end
+ 
+function freemoney()
+    while money == true do
+        local ohString1 = "Free money <font color=\"rgb(100,255,100)\">($99999)</font>"
+        game:GetService("Players").LocalPlayer.PlayerGui.HUD.Messages.Use:Fire(ohString1)
+        wait(5)
     end
-)
+end
  
-Uis.InputBegan:Connect(
-    function(keyinput, stupid)
-        if
-            keyinput.KeyCode == Settings.Main.KeyBoardKey and Settings.Main.UseKeyBoardKey == true and
-                getgenv().Settings.Main.Enable == true and
-                AimlockTarget == nil and
-                getgenv().Settings.Main.ToggleKey == true
-         then
-            pcall(
-                function()
-                    MousePressed = true
-                    AimlockTarget = GetNearestTarget()
-                end
-            )
-        elseif
-            keyinput.KeyCode == Settings.Main.KeyBoardKey and Settings.Main.UseKeyBoardKey == true and
-                getgenv().Settings.Main.Enable == true and
-                AimlockTarget ~= nil
-         then
-            AimlockTarget = nil
-            MousePressed = false
-        end
+OrionLib:MakeNotification({
+    Name = "Welcome To Hydra Network",
+    Content = "Thanks for using Hydra Network!",
+    Image = "rbxassetid://4483345998",
+    Time = 5
+})
+ 
+ 
+function RandomEmote()
+    OrionLib:MakeNotification({
+        Name = "Random Emoting...",
+        Content = "You pressed the Random Emote keybind",
+        Image = "rbxassetid://4483345998",
+        Time = 5
+    })
+end
+--tabs
+ 
+local MainTab= Window:MakeTab({
+	Name = "Main features",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+ 
+local MiscTab= Window:MakeTab({
+	Name = "Extra",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+ 
+local ESPTab = Window:MakeTab({
+    Name =  "Esp",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+ 
+local TeleportTab= Window:MakeTab({
+    Name = "Teleport",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+ 
+local FunTab= Window:MakeTab({
+    Name = "Fun",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+ 
+local CreditsTab = Window:MakeTab({
+	Name = "Credits",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = true
+})
+ 
+local MiscTab3 = MainTab:AddSection({
+	Name = "Auto Farms"
+})
+ 
+MainTab:AddToggle({
+	Name = "Money Farm",
+	Default = false,
+	Callback = function(Value)
+		Settings.moneyfarm = Value
+	end    
+})
+ 
+MainTab:AddToggle({
+	Name = "Afk Farm",
+	Default = false,
+	Callback = function(Value)
+        Settings.afkfarm = Value
+	end    
+})
+ 
+--sliders
+local MainTab3 = MainTab:AddSection({
+	Name = "Sliders"
+})
+ 
+local Misctab5 = MiscTab:AddSection({
+	Name = "Sliders"
+})
+ 
+local TargetWalkspeed
+MainTab:AddSlider({
+	Name = "Speed",
+	Min = 0,
+	Max = 250,
+	Default = 0,
+	Color = Color3.fromRGB(128, 128, 128),
+	Increment = 1,
+	ValueName = "Walk Speed",
+	Callback = function(Value)
+		TargetWalkspeed = Value
+	end   
+})
+ 
+MainTab:AddSlider({
+    Name = "Hip height",
+    Min = -1.40,
+    Max = 100,
+    Default = -1.40,
+    Color = Color3.fromRGB(128, 128, 128),
+    Increment = 1,
+	ValueName = "Hip Height",
+    Callback = function(HipValue)
+        game.Players.LocalPlayer.Character.Humanoid.HipHeight = HipValue
+    end    
+})
+ 
+MainTab:AddSlider({
+	Name = "Fov Slider",
+	Min = 1,
+	Max = 120,
+	Default = 70,
+	Color = Color3.fromRGB(128, 128, 128),
+	Increment = 1,
+	ValueName = "Fov",
+	Callback = function(Fov)
+        local ohString1 = "FieldOfView"
+        local ohNumber2 = Fov
+        game:GetService("ReplicatedStorage").Events.UpdateSetting:FireServer(ohString1, ohNumber2)
     end
-)
+})
  
--- // Use MouseKey Function
- 
-Uis.InputBegan:connect(
-    function(input)
-        if
-            input.UserInputType == Settings.Main.MouseKey and Settings.Main.UseMouseKey == true and
-                getgenv().Settings.Main.Enable == true and
-                AimlockTarget == nil and
-                getgenv().Settings.Main.HoldKey == true
-         then
-            pcall(
-                function()
-                    MousePressed = true
-                    AimlockTarget = GetNearestTarget()
-                end
-            )
-        end
+MainTab:AddSlider({
+	Name = "Jump Power",
+	Min = 0,
+	Max = 120,
+	Default = 3,
+	Color = Color3.fromRGB(128, 128, 128),
+	Increment = 1,
+	ValueName = "Jump",
+	Callback = function(Value)
+		Settings.Jump = Value
     end
-)Uis.InputEnded:connect(
-    function(input)
-        if
-            input.UserInputType == Settings.Main.MouseKey and getgenv().Settings.Main.HoldKey == true and
-                Settings.Main.UseMouseKey == true and
-                getgenv().Settings.Main.Enable == true and
-                AimlockTarget ~= nil
-         then
-            AimlockTarget = nil
-            MousePressed = false
-        end
+})
+ 
+MiscTab:AddSlider({
+	Name = "Day & night Slider",
+	Min = 0,
+	Max = 24,
+	Default = 14,
+	Color = Color3.fromRGB(128, 128, 128),
+	Increment = 0.1,
+	ValueName = "Time",
+	Callback = function(Time)
+        game.Lighting.ClockTime = Time
     end
-)
+})
  
-Uis.InputBegan:Connect(
-    function(keyinput, stupid)
-        if
-            keyinput.UserInputType == Settings.Main.MouseKey and Settings.Main.UseMouseKey == true and
-                getgenv().Settings.Main.Enable == true and
-                AimlockTarget == nil and
-                getgenv().Settings.Main.ToggleKey == true
-         then
-            pcall(
-                function()
-                    MousePressed = true
-                    AimlockTarget = GetNearestTarget()
-                end
-            )
-        elseif
-            keyinput.UserInputType == Settings.Main.MouseKey and Settings.Main.UseMouseKey == true and
-                getgenv().Settings.Main.Enable == true and
-                AimlockTarget ~= nil
-         then
-            AimlockTarget = nil
-            MousePressed = false
-        end
-    end
-)
+--toggles
  
--- // Main Functions. RunService HeartBeat.
+local FunTab2 = FunTab:AddSection({
+	Name = "Toggles"
+})
  
-task.spawn(
-    function()
-        while task.wait() do
-            if MousePressed == true and getgenv().Settings.Main.Enable == true then
-                if AimlockTarget and AimlockTarget.Character then
-                    if getgenv().Settings.Part.GetClosestPart == true then
-                        getgenv().Settings.Part.AimPart = tostring(GetClosestBodyPart(AimlockTarget.Character))
-                    end
-                end
-                if getgenv().Settings.Main.DisableOutSideCircle == true and AimlockTarget and AimlockTarget.Character then
-                    if
-                        Circle.Radius <
-                            (Vec2(
-                                Camera:WorldToScreenPoint(AimlockTarget.Character.HumanoidRootPart.Position).X,
-                                Camera:WorldToScreenPoint(AimlockTarget.Character.HumanoidRootPart.Position).Y
-                            ) - Vec2(Mouse.X, Mouse.Y)).Magnitude
-                     then
-                        AimlockTarget = nil
-                    end
-                end
-            end
-        end
-    end
-)
+local MiscTab3 = MainTab:AddSection({
+	Name = "Toggles"
+})
  
-RService.Heartbeat:Connect(
-    function()
-        if getgenv().Settings.Main.Enable == true and MousePressed == true then
-            if getgenv().Settings.Main.UseShake == true and AimlockTarget and AimlockTarget.Character then
-                pcall(
-                    function()
-                        local TargetVelv1 = AimlockTarget.Character[getgenv().Settings.Part.AimPart]
-                        TargetVelv1.Velocity =
-                            Vec3(TargetVelv1.Velocity.X, TargetVelv1.Velocity.Y, TargetVelv1.Velocity.Z) +
-                            Vec3(
-                                math.random(-getgenv().Settings.Main.ShakePower, getgenv().Settings.Main.ShakePower),
-                                math.random(-getgenv().Settings.Main.ShakePower, getgenv().Settings.Main.ShakePower),
-                                math.random(-getgenv().Settings.Main.ShakePower, getgenv().Settings.Main.ShakePower)
-                            ) *
-                                0.1
-                        TargetVelv1.AssemblyLinearVelocity =
-                            Vec3(TargetVelv1.Velocity.X, TargetVelv1.Velocity.Y, TargetVelv1.Velocity.Z) +
-                            Vec3(
-                                math.random(-getgenv().Settings.Main.ShakePower, getgenv().Settings.Main.ShakePower),
-                                math.random(-getgenv().Settings.Main.ShakePower, getgenv().Settings.Main.ShakePower),
-                                math.random(-getgenv().Settings.Main.ShakePower, getgenv().Settings.Main.ShakePower)
-                            ) *
-                                0.1
-                    end
-                )
+MainTab:AddToggle({
+	Name = "No Camera Shake",
+	Default = false,
+	Callback = function(Value)
+        NoCameraShake = Value
+        camerashake()
+	end    
+})
+ 
+MainTab:AddToggle({
+	Name = "Auto Drink Cola (drinks everytime it runs out)",
+	Default = false,
+	Callback = function(Value)
+		AutoDrink = Value
+		autodrink()
+	end    
+})
+ 
+FunTab:AddToggle({
+	Name = "Spam Chat",
+	Default = false,
+	Callback = function(Value)
+        autochat = Value
+        SpamChat()
+	end    
+})
+ 
+FunTab:AddToggle({
+	Name = "fake money giver",
+	Default = false,
+	Callback = function(Value)
+        money = Value
+        freemoney()
+	end    
+})
+ 
+MainTab:AddToggle({
+	Name = "auto respawn (you respawn when you get downed)",
+	Default = false,
+	Callback = function(Value)
+        Settings.AutoRespawn = Value
+	end    
+})
+ 
+FunTab:AddToggle({
+	Name = "Auto Wistle",
+	Default = false,
+	Callback = function(Value)
+		autowistle = Value
+        autowistlefunction()
+	end    
+})
+ 
+--buttons
+local FunTab3 = FunTab:AddSection({
+	Name = "Buttons"
+})
+ 
+local MiscTab2 = MiscTab:AddSection({
+	Name = "Buttons"
+})
+ 
+MiscTab:AddButton({
+    Name = "Chat Spy",
+    Callback = function()
+        enabled = true
+spyOnMyself = false
+public = false
+publicItalics = true
+privateProperties = {
+	Color = Color3.fromRGB(0,255,255); 
+	Font = Enum.Font.SourceSansBold;
+	TextSize = 18;
+}
+local StarterGui = game:GetService("StarterGui")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local saymsg = game:GetService("ReplicatedStorage"):WaitForChild("DefaultChatSystemChatEvents"):WaitForChild("SayMessageRequest")
+local getmsg = game:GetService("ReplicatedStorage"):WaitForChild("DefaultChatSystemChatEvents"):WaitForChild("OnMessageDoneFiltering")
+local instance = (_G.chatSpyInstance or 0) + 1
+_G.chatSpyInstance = instance
+ 
+local function onChatted(p,msg)
+	if _G.chatSpyInstance == instance then
+		if p==player and msg:lower():sub(1,4)=="/spy" then
+			enabled = not enabled
+			wait(0.3)
+			privateProperties.Text = "{SPY "..(enabled and "EN" or "DIS").."ABLED}"
+			StarterGui:SetCore("ChatMakeSystemMessage",privateProperties)
+		elseif enabled and (spyOnMyself==true or p~=player) then
+			msg = msg:gsub("[\n\r]",''):gsub("\t",' '):gsub("[ ]+",' ')
+			local hidden = true
+			local conn = getmsg.OnClientEvent:Connect(function(packet,channel)
+				if packet.SpeakerUserId==p.UserId and packet.Message==msg:sub(#msg-#packet.Message+1) and (channel=="All" or (channel=="Team" and public==false and Players[packet.FromSpeaker].Team==player.Team)) then
+					hidden = false
+				end
+			end)
+			wait(1)
+			conn:Disconnect()
+			if hidden and enabled then
+				if public then
+					saymsg:FireServer((publicItalics and "/me " or '').."{SPY} [".. p.Name .."]: "..msg,"All")
+				else
+					privateProperties.Text = "{SPY} [".. p.Name .."]: "..msg
+					StarterGui:SetCore("ChatMakeSystemMessage",privateProperties)
+				end
+			end
+		end
+	end
+end
+ 
+for _,p in ipairs(Players:GetPlayers()) do
+	p.Chatted:Connect(function(msg) onChatted(p,msg) end)
+end
+Players.PlayerAdded:Connect(function(p)
+	p.Chatted:Connect(function(msg) onChatted(p,msg) end)
+end)
+privateProperties.Text = "{SPY "..(enabled and "EN" or "DIS").."ABLED}"
+StarterGui:SetCore("ChatMakeSystemMessage",privateProperties)
+local chatFrame = player.PlayerGui.Chat.Frame
+chatFrame.ChatChannelParentFrame.Visible = true
+chatFrame.ChatBarParentFrame.Position = chatFrame.ChatChannelParentFrame.Position+UDim2.new(UDim.new(),chatFrame.ChatChannelParentFrame.Size.Y)
+OrionLib:MakeNotification({
+	Name = "Hydra Network",
+	Content = "Pressed on the Chat Spy Button",
+	Image = "rbxassetid://4483345998",
+	Time = 2
+})    
+      end    
+})
+ 
+ESPTab:AddButton({
+	Name = "Player Esp",
+	Callback = function()
+		local c = workspace.CurrentCamera
+		local ps = game:GetService("Players")
+		local lp = ps.LocalPlayer
+		local rs = game:GetService("RunService")
+		local function getdistancefc(part)
+			return (part.Position - c.CFrame.Position).Magnitude
+		end
+		local function esp(p, cr)
+			local h = cr:WaitForChild("Humanoid")
+			local hrp = cr:WaitForChild("HumanoidRootPart")
+			local text = Drawing.new("Text")
+			text.Visible = false
+			text.Center = true
+			text.Outline = true
+			text.Font = 2
+			text.Color = Color3.fromRGB(255, 255, 255)
+			text.Size = 17
+			local c1
+			local c2
+			local c3
+			local function dc()
+				text.Visible = false
+				text:Remove()
+				if c1 then
+					c1:Disconnect()
+					c1 = nil
+				end
+				if c2 then
+					c2:Disconnect()
+					c2 = nil
+				end
+				if c3 then
+					c3:Disconnect()
+					c3 = nil
+				end
+			end
+			c2 =
+				cr.AncestryChanged:Connect(
+				function(_, parent)
+					if not parent then
+						dc()
+					end
+				end
+			)
+			c3 =
+				h.HealthChanged:Connect(
+				function(v)
+					if (v <= 0) or (h:GetState() == Enum.HumanoidStateType.Dead) then
+						dc()
+					end
+				end
+			)
+			c1 =
+				rs.RenderStepped:Connect(
+				function()
+					local hrp_pos, hrp_os = c:WorldToViewportPoint(hrp.Position)
+					if hrp_os then
+						text.Position = Vector2.new(hrp_pos.X, hrp_pos.Y)
+						text.Text = p.Name .. " (" .. tostring(math.floor(getdistancefc(hrp))) .. " m)"
+						text.Visible = true
+					else
+						text.Visible = false
+					end
+				end
+			)
+		end
+		local function p_added(p)
+			if p.Character then
+				esp(p, p.Character)
+			end
+			p.CharacterAdded:Connect(
+				function(cr)
+					esp(p, cr)
+				end
+			)
+		end
+		for i, p in next, ps:GetPlayers() do
+			if p ~= lp then
+				p_added(p)
+			end
+		end
+		ps.PlayerAdded:Connect(p_added)
+        OrionLib:MakeNotification({
+			Name = "Hydra Network",
+			Content = "Pressed on the Player Esp Button",
+			Image = "rbxassetid://4483345998",
+			Time = 2
+		}) 
+  	end    
+})
+ 
+MiscTab:AddButton({
+	Name = "Inf Jump",
+	Callback = function()
+        local InfiniteJumpEnabled = true
+        game:GetService("UserInputService").JumpRequest:connect(function()
+            if InfiniteJumpEnabled then
+                game:GetService"Players".LocalPlayer.Character:FindFirstChildOfClass'Humanoid':ChangeState("Jumping")
             end
-            if getgenv().Settings.Resolver.UnderGround == true and AimlockTarget and AimlockTarget.Character then
-                pcall(
-                    function()
-                        local TargetVelv2 = AimlockTarget.Character[getgenv().Settings.Part.AimPart]
-                        TargetVelv2.Velocity = Vec3(TargetVelv2.Velocity.X, 0, TargetVelv2.Velocity.Z)
-                        TargetVelv2.AssemblyLinearVelocity = Vec3(TargetVelv2.Velocity.X, 0, TargetVelv2.Velocity.Z)
-                    end
-                )
-            end
-            if
-                getgenv().Settings.Resolver.DetectDesync == true and AimlockTarget and AimlockTarget.Character and
-                    AimlockTarget.Character:WaitForChild("HumanoidRootPart").Velocity.magnitude >
-                        getgenv().Settings.Resolver.Detection
-             then
-                pcall(
-                    function()
-                        local TargetVel = AimlockTarget.Character[getgenv().Settings.Part.AimPart]
-                        TargetVel.Velocity = Vec3(0, 0, 0)
-                        TargetVel.AssemblyLinearVelocity = Vec3(0, 0, 0)
-                    end
-                )
-            end
-            if getgenv().Settings.Main.ThirdPerson == true and getgenv().Settings.Main.FirstPerson == true then
-                if
-                    (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude > 1 or
-                        (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude <= 1
-                 then
-                    CanNotify = true
-                else
-                    CanNotify = false
+        end)
+        OrionLib:MakeNotification({
+			Name = "Hydra Network",
+			Content = "Pressed on the Inf Jump Button",
+			Image = "rbxassetid://4483345998",
+			Time = 2
+		}) 
+  	end    
+})
+ 
+MiscTab:AddButton({
+	Name = "Q to Teleport",
+	Callback = function()
+        plr = game.Players.LocalPlayer 
+        hum = plr.Character.HumanoidRootPart 
+        mouse = plr:GetMouse()
+        mouse.KeyDown:connect(function(key)
+            if key == "q" then
+            if mouse.Target then
+                hum.CFrame = CFrame.new(mouse.Hit.x, mouse.Hit.y + 5, mouse.Hit.z)
                 end
-            elseif getgenv().Settings.Main.ThirdPerson == true and getgenv().Settings.Main.FirstPerson == false then
-                if (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude > 1 then
-                    CanNotify = true
-                else
-                    CanNotify = false
-                end
-            elseif getgenv().Settings.Main.ThirdPerson == false and getgenv().Settings.Main.FirstPerson == true then
-                if (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude <= 1 then
-                    CanNotify = true
-                else
-                    CanNotify = false
-                end
             end
-            if getgenv().Settings.Main.AutoPingSets == true and getgenv().Settings.Horizontal.PredictionVelocity then
-                local pingvalue = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString()
-                local split = string.split(pingvalue, "(")
-                local ping = tonumber(split[1])
-                if ping > 190 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.206547
-                elseif ping > 180 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.19284
-                elseif ping > 170 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.1923111
-                elseif ping > 160 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.1823111
-                elseif ping > 150 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.171
-                elseif ping > 140 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.165773
-                elseif ping > 130 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.1223333
-                elseif ping > 120 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.143765
-                elseif ping > 110 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.1455
-                elseif ping > 100 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.130340
-                elseif ping > 90 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.136
-                elseif ping > 80 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.1347
-                elseif ping > 70 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.119
-                elseif ping > 60 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.12731
-                elseif ping > 50 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.127668
-                elseif ping > 40 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.125
-                elseif ping > 30 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.11
-                elseif ping > 20 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.12588
-                elseif ping > 10 then
-                    getgenv().Settings.Horizontal.PredictionVelocity = 0.9
-                end
-            end
-            if getgenv().Settings.Check.CheckIfKo == true and AimlockTarget and AimlockTarget.Character then
-                local KOd = AimlockTarget.Character:WaitForChild("BodyEffects")["K.O"].Value
-                local Grabbed = AimlockTarget.Character:FindFirstChild("GRABBING_CONSTRAINT") ~= nil
-                if AimlockTarget.Character.Humanoid.health < 1 or KOd or Grabbed then
-                    if MousePressed == true then
-                        AimlockTarget = nil
-                        MousePressed = false
-                    end
-                end
-            end
-            if
-                getgenv().Settings.Check.DisableOnTargetDeath == true and AimlockTarget and
-                    AimlockTarget.Character:FindFirstChild("Humanoid")
-             then
-                if AimlockTarget.Character.Humanoid.health < 1 then
-                    if MousePressed == true then
-                        AimlockTarget = nil
-                        MousePressed = false
-                    end
-                end
-            end
-            if
-                getgenv().Settings.Check.DisableOnPlayerDeath == true and Client.Character and
-                    Client.Character:FindFirstChild("Humanoid") and
-                    Client.Character.Humanoid.health < 1
-             then
-                if MousePressed == true then
-                    AimlockTarget = nil
-                    MousePressed = false
-                end
-            end
-            if getgenv().Settings.Part.CheckIfJumped == true and getgenv().Settings.Part.GetClosestPart == false then
-                if AimlockTarget and AimlockTarget.Character then
-                    if AimlockTarget.Character.Humanoid.FloorMaterial == Enum.Material.Air then
-                        getgenv().Settings.Part.AimPart = getgenv().Settings.Part.CheckIfJumpedAimPart
+        end)
+        OrionLib:MakeNotification({
+			Name = "Hydra Network",
+			Content = "Pressed on the Q To Teleport Button",
+			Image = "rbxassetid://4483345998",
+			Time = 2
+		}) 
+  	end    
+})
+ 
+MiscTab:AddButton({
+	Name = "Full Bright",
+	Callback = function()
+        dofullbright()
+  
+  	end    
+})
+ 
+MiscTab:AddButton({
+	Name = "Return Too Main Menu",
+	Callback = function()
+        game:GetService("ReplicatedStorage").Events.ReturnToMenu:FireServer()
+  	end    
+})
+ 
+MiscTab:AddButton({
+	Name = "Low Quality",
+	Callback = function()
+        local ohString1 = "LowQuality"
+        local ohBoolean2 = true
+        game:GetService("ReplicatedStorage").Events.UpdateSetting:FireServer(ohString1, ohBoolean2)
+        OrionLib:MakeNotification({
+			Name = "Hydra Network",
+			Content = "Pressed on the Low Quality Button",
+			Image = "rbxassetid://4483345998",
+			Time = 2
+		}) 
+  	end    
+})
+ 
+FunTab:AddButton({
+    Name = "Free cam (shift + P)",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Robobo2022/script/main/Freecam.lua"))()
+        OrionLib:MakeNotification({
+			Name = "Hydra Network",
+			Content = "Pressed on the Free cam Button",
+			Image = "rbxassetid://4483345998",
+			Time = 2
+		}) 
+      end    
+})
+ 
+TeleportTab:AddButton({
+    Name = "Main Game",
+    Callback = function()
+        local TeleportService = game:GetService('TeleportService')
+        GameId = 9872472334
+        TeleportService:Teleport(GameId, game.Players.LocalPlayer)
+      end    
+})
+ 
+ 
+TeleportTab:AddButton({
+    Name = "Casual",
+    Callback = function()
+        local TeleportService = game:GetService('TeleportService')
+        GameId = 10662542523
+        TeleportService:Teleport(GameId, game.Players.LocalPlayer)
+      end    
+})
+ 
+TeleportTab:AddButton({
+    Name = "Social Space",
+    Callback = function()
+        local TeleportService = game:GetService('TeleportService')
+        GameId = 10324347967
+        TeleportService:Teleport(GameId, game.Players.LocalPlayer)
+      end    
+})
+ 
+TeleportTab:AddButton({
+    Name = "Big Team",
+    Callback = function()
+        local TeleportService = game:GetService('TeleportService')
+        GameId = 10324346056
+        TeleportService:Teleport(GameId, game.Players.LocalPlayer)
+      end    
+})
+ 
+TeleportTab:AddButton({
+    Name = "Team DeathMatch",
+    Callback = function()
+        local TeleportService = game:GetService('TeleportService')
+        GameId = 110539706691
+        TeleportService:Teleport(GameId, game.Players.LocalPlayer)
+      end    
+})
+ 
+TeleportTab:AddButton({
+    Name = "Vc Only",
+    Callback = function()
+        local TeleportService = game:GetService('TeleportService')
+        GameId = 10808838353
+        TeleportService:Teleport(GameId, game.Players.LocalPlayer)
+      end    
+})
+ 
+local MiscTab2 = MiscTab:AddSection({
+	Name = "Item Giver"
+})
+ 
+MiscTab:AddButton({
+	Name = "Test Emote (Permanant)",
+	Callback = function()
+        game:GetService("ReplicatedStorage").Events.UI.Purchase:InvokeServer("Emotes", "Test")
+  	end    
+})
+ 
+--keybinds
+ 
+local MiscTab1 = MiscTab:AddSection({
+	Name = "KeyBinds"
+})
+ 
+local FunTab1 = FunTab:AddSection({
+	Name = "KeyBinds"
+})
+ 
+MiscTab:AddBind({
+	Name = "Drink Cola",
+	Default = Enum.KeyCode.H,
+	Hold = false,
+	Callback = function()
+		local ohString1 = "Cola"
+		game:GetService("ReplicatedStorage").Events.UseUsable:FireServer(ohString1)
+	end    
+})
+ 
+MiscTab:AddBind({
+	Name = "Rejoin Server",
+	Default = Enum.KeyCode.B,
+	Hold = false,
+	Callback = function()
+        OrionLib:MakeNotification({
+            Name = "You Pressed the Rejoin Keybind.",
+            Content = "Rejoining in 5 seconds",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+        wait(1)
+        OrionLib:MakeNotification({
+            Name = "Hydra Network",
+            Content = "Rejoining in 4 seconds",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+        wait(1)
+        OrionLib:MakeNotification({
+            Name = "Hydra Network",
+            Content = "Rejoining in 3 seconds",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+        wait(1)
+        OrionLib:MakeNotification({
+            Name = "Hydra Network",
+            Content = "Rejoining in 2 seconds",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+        wait(1)
+        OrionLib:MakeNotification({
+            Name = "Hydra Network",
+            Content = "Rejoining in 1 seconds",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+        wait(1)
+        OrionLib:MakeNotification({
+            Name = "Hydra Network",
+            Content = "Rejoining",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+        local ts = game:GetService("TeleportService")
+        local p = game:GetService("Players").LocalPlayer
+        ts:Teleport(game.PlaceId, p)
+	end    
+})
+ 
+MiscTab:AddBind({
+	Name = "Random Vote",
+	Default = Enum.KeyCode.X,
+	Hold = false,
+	Callback = function()
+        local RandomVote = math.random(3)
+		local ohNumber1 = (RandomVote)
+        game:GetService("ReplicatedStorage").Events.Vote:FireServer(ohNumber1)
+        OrionLib:MakeNotification({
+			Name = "Hydra Network",
+			Content = "Pressed on the Random Vote Keybind",
+			Image = "rbxassetid://4483345998",
+			Time = 2
+		}) 
+	end    
+})
+ 
+MiscTab:AddBind({
+	Name = "Respawn",
+	Default = Enum.KeyCode.R,
+	Hold = false,
+	Callback = function()
+		game:GetService("ReplicatedStorage").Events.Respawn:FireServer()
+		OrionLib:MakeNotification({
+			Name = "Respawning...",
+			Content = "You pressed the respawn keybind",
+			Image = "rbxassetid://4483345998",
+			Time = 5
+			})
+	end    
+})
+ 
+FunTab:AddBind({
+	Name = "Random Emote",
+	Default = Enum.KeyCode.Z,
+	Hold = false,
+	Callback = function()
+        local number = math.random(4)
+        local ohString1 = (number)
+        game:GetService("ReplicatedStorage").Events.Emote:FireServer(ohString1)
+        RandomEmote()
+	end    
+})
+--test
+ 
+ESPTab:AddToggle({
+    Name = "Bots tracers",
+    Default = true,
+    Callback = function(Value)
+        getgenv().toggleespmpt = Value
+    end    
+})
+ 
+ESPTab:AddColorpicker({
+    Name = "Colour",
+    Default = Color3.fromRGB(255, 255, 255),
+    Callback = function(Value)
+        getgenv().mptespcolour = Value
+    end  
+})
+ 
+--credits
+ 
+CreditsTab:AddParagraph("Owner/Main Dev","hydra#8270")
+CreditsTab:AddParagraph("Credits","Felix and ss.spooky.ss")
+CreditsTab:AddParagraph("Credits","xCLY And batusd")
+CreditsTab:AddParagraph("Credits","Truncated Cuboctahedron")
+ 
+ 
+local cam = workspace.CurrentCamera
+local rs = game:GetService'RunService'
+ 
+getgenv().toggleespmpt = true
+function esp(plr)
+   if game:GetService'Players':GetPlayerFromCharacter(plr) == nil then
+    local rat = Drawing.new("Line")
+        rs.RenderStepped:Connect(function()
+            if plr:FindFirstChild'HumanoidRootPart' then
+                local vector,screen = cam:WorldToViewportPoint(plr.HumanoidRootPart.Position)
+                if screen then
+                    rat.Visible = toggleespmpt
+                    rat.From = Vector2.new(cam.ViewportSize.X / 2,cam.ViewportSize.Y / 1)
+                    rat.To = Vector2.new(vector.X,vector.Y)
+                    rat.Color = getgenv().mptespcolour
+                    rat.Thickness = getgenv().mptespthickness
                     else
-                        getgenv().Settings.Part.AimPart = OldAimPart
-                    end
+                        rat.Visible = false
                 end
+                else
+                    pcall(function()
+                    rat.Visible = false
+                    end)
             end
-            if
-                AimlockTarget and AimlockTarget.Character and
-                    AimlockTarget.Character:FindFirstChild(getgenv().Settings.Part.AimPart)
-             then
-                if getgenv().Settings.Main.FirstPerson == true then
-                    if CanNotify == true then
-                        if getgenv().Settings.Horizontal.PredictMovement == true then
-                            if getgenv().Settings.Smooth.Smoothness == true then
-                                local Main =
-                                    CF(
-                                    Camera.CFrame.p,
-                                    AimlockTarget.Character[getgenv().Settings.Part.AimPart].Position +
-                                        AimlockTarget.Character[getgenv().Settings.Part.AimPart].Velocity *
-                                            getgenv().Settings.Horizontal.PredictionVelocity
-                                )
- 
-                                Camera.CFrame =
-                                    Camera.CFrame:Lerp(
-                                    Main,
-                                    getgenv().Settings.Smooth.SmoothnessAmount,
-                                    Enum.EasingStyle.Elastic,
-                                    Enum.EasingDirection.InOut
-                                )
-                            else
-                                Camera.CFrame =
-                                    CF(
-                                    Camera.CFrame.p,
-                                    AimlockTarget.Character[getgenv().Settings.Part.AimPart].Position +
-                                        AimlockTarget.Character[getgenv().Settings.Part.AimPart].Velocity *
-                                            getgenv().Settings.Horizontal.PredictionVelocity + Vector3
-                                )
-                            end
-                        elseif getgenv().Settings.Horizontal.PredictMovement == false then
-                            if getgenv().Settings.Smooth.Smoothness == true then
-                                local Main =
-                                    CF(
-                                    Camera.CFrame.p,
-                                    AimlockTarget.Character[getgenv().Settings.Part.AimPart].Position
-                                )
-                                Camera.CFrame =
-                                    Camera.CFrame:Lerp(
-                                    Main,
-                                    getgenv().Settings.Smooth.SmoothnessAmount,
-                                    getgenv().Settings.Smooth.SmoothMethod,
-                                    getgenv().Settings.Smooth.SmoothMethodV2
-                                )
-                            else
-                                Camera.CFrame =
-                                    CF(
-                                    Camera.CFrame.p,
-                                    AimlockTarget.Character[getgenv().Settings.Part.AimPart].Position
-                                )
-                            end
-                        end
-                    end
-                end
+                if not plr:FindFirstChild'HumanoidRootPart' or not plr:FindFirstChild'HumanoidRootPart':IsDescendantOf(game:GetService'Workspace') then
+                    pcall(function()
+                    rat:Remove()
+                    end)
             end
-        end
-    end
-)
- 
--- IK THIS IS SHITTY BRUH
- 
-local PerformanceStats = game:GetService("CoreGui"):WaitForChild("RobloxGui"):WaitForChild("PerformanceStats")
- 
-local MemLabel
-local color,
-    color1,
-    color2,
-    color3,
-    color4,
-    color5,
-    color6,
-    color7,
-    color8,
-    color9,
-    color10,
-    color11,
-    color12,
-    color13,
-    color14,
-    color15,
-    color16,
-    color17,
-    color18,
-    color19
-for I, Child in next, PerformanceStats:GetChildren() do
-    if Child.StatsMiniTextPanelClass.TitleLabel.Text == "Mem" then
-        MemLabel = Child.StatsMiniTextPanelClass.ValueLabel
-        color = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_0
-        color1 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_1
-        color2 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_2
-        color3 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_3
-        color4 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_4
-        color5 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_5
-        color6 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_6
-        color7 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_7
-        color8 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_8
-        color9 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_9
-        color10 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_10
-        color11 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_11
-        color12 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_12
-        color13 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_13
-        color14 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_14
-        color15 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_15
-        color16 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_16
-        color17 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_17
-        color18 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_18
-        color19 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_19
-        break
-    end
+        end)
+   end
 end
-MemLabel:GetPropertyChangedSignal("Text"):Connect(
-    function()
-        if Settings.Spoofer.MemorySpoofer == true then
-            MemLabel.Text = math.random(Settings.Spoofer.MemoryLeast, Settings.Spoofer.MemoryMost) / 100 .. " MB"
-            color.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color1.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color2.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color3.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color4.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color5.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color6.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color7.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color8.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color9.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color10.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color11.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color12.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color13.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color14.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color15.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color16.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color17.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color18.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-            color19.BackgroundColor3 = Settings.Spoofer.MemoryTabColor
-        end
-    end
-)
  
-local PingLabel
-for I, Child in next, PerformanceStats:GetChildren() do
-    if Child.StatsMiniTextPanelClass.TitleLabel.Text == "Ping" then
-        PingLabel = Child.StatsMiniTextPanelClass.ValueLabel
-        color = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_0
-        color1 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_1
-        color2 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_2
-        color3 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_3
-        color4 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_4
-        color5 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_5
-        color6 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_6
-        color7 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_7
-        color8 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_8
-        color9 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_9
-        color10 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_10
-        color11 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_11
-        color12 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_12
-        color13 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_13
-        color14 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_14
-        color15 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_15
-        color16 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_16
-        color17 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_17
-        color18 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_18
-        color19 = Child.PS_AnnotatedGraph.PS_BarFrame.Bar_19
-        break
-    end
+for i,v in pairs(game:GetService'Workspace'.Game.Players:GetChildren()) do
+    esp(v)
 end
-PingLabel:GetPropertyChangedSignal("Text"):Connect(
-    function()
-        if Settings.Spoofer.PingSpoofer == true then
-            local textrandom = math.random(Settings.Spoofer.PingLeast, Settings.Spoofer.PingMost) / 100
-            PingLabel.Text = textrandom .. " ms"
-            color.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color1.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color2.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color3.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color4.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color5.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color6.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color7.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color8.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color9.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color10.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color11.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color12.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color13.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color14.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color15.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color16.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color17.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color18.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            color19.BackgroundColor3 = Settings.Spoofer.PingTabColor
-            if game.PlaceId == 9825515356 then
-                game:GetService("ReplicatedStorage").MainEvent:FireServer("GetPing", textrandom)
-            end
-        end
+ 
+game:GetService'Workspace'.Game.Players.ChildAdded:Connect(function(plr)
+    esp(plr)
+end)
+ 
+local old
+old = hookmetamethod(game,"__namecall",newcclosure(function(self,...)
+    local Args = {...}
+    local method = getnamecallmethod()
+    if tostring(self) == 'Communicator' and method == "InvokeServer" and Args[1] == "update" then
+        return Settings.Speed, Settings.Jump 
     end
-)
+    return old(self,...)
+end))
+ 
+setclipboard("https://discord.gg/k9a4zym5uG")
+ 
+OrionLib:MakeNotification({
+Name = "Join Discord",
+Content = "Join the Discord Copied in your clip Board",
+Image = "rbxassetid://4483345998",
+Time = 5
+})
+ 
+game:GetService("RunService").RenderStepped:Connect(function()
+    pcall(function()
+        if game.Players.LocalPlayer.Character.Humanoid.MoveDirection.Magnitude > 0 then
+            game.Players.LocalPlayer.Character:TranslateBy(game.Players.LocalPlayer.Character.Humanoid.MoveDirection * TargetWalkspeed/100)
+        end
+    end)
+end)
+ 
+OrionLib:Init()
